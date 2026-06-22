@@ -11,7 +11,7 @@ interface TrackInfo {
 }
 
 const FALLBACK_COVER = "/assets/fondo.webp";
-const SYNC_THRESHOLD = 1.5; // segundos de tolerancia antes de forzar sincronía
+const SYNC_THRESHOLD = 1.5;
 const VOLUME_STORAGE_KEY = "dj-second-screen-volume";
 
 export default function SecondScreenPage() {
@@ -19,14 +19,12 @@ export default function SecondScreenPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
-
-  // Volumen local de la segunda pantalla (independiente del Player)
   const [volume, setVolume] = useState(1);
   const [muted, setMuted] = useState(false);
+  const [hovered, setHovered] = useState(false);
 
   const mediaRef = useRef<HTMLAudioElement | HTMLVideoElement | null>(null);
 
-  // ── Cargar volumen guardado de esta pantalla ──────────────────────────────
   useEffect(() => {
     const saved = localStorage.getItem(VOLUME_STORAGE_KEY);
     if (saved !== null) {
@@ -35,7 +33,6 @@ export default function SecondScreenPage() {
     }
   }, []);
 
-  // ── Aplicar volumen al elemento de media actual ──────────────────────────
   useEffect(() => {
     if (mediaRef.current) {
       mediaRef.current.volume = muted ? 0 : volume;
@@ -51,7 +48,6 @@ export default function SecondScreenPage() {
 
   const toggleMute = () => setMuted((m) => !m);
 
-  // ── Escuchar mensajes del Player ──────────────────────────────────────────
   useEffect(() => {
     const channel = new BroadcastChannel("dj-second-screen");
 
@@ -77,7 +73,6 @@ export default function SecondScreenPage() {
       if (type === "PROGRESS") {
         setProgress(e.data.progress);
         setDuration(e.data.duration);
-        // Sincronizar currentTime si hay drift significativo
         const el = mediaRef.current;
         if (el && isFinite(e.data.progress)) {
           const diff = Math.abs(el.currentTime - e.data.progress);
@@ -106,25 +101,19 @@ export default function SecondScreenPage() {
     };
 
     channel.postMessage({ type: "REQUEST_STATE" });
-
     return () => channel.close();
   }, []);
 
-  // ── Cuando cambia el track: cargar y reproducir el medio ──────────────────
   useEffect(() => {
-    if (!track?.url) return;
-    if (track.trackType === "image") return; // las imágenes no usan mediaRef
-
+    if (!track?.url || track.trackType === "image") return;
     const el = mediaRef.current;
     if (!el) return;
-
     el.src = track.url;
     el.volume = muted ? 0 : volume;
     el.load();
     if (isPlaying) el.play().catch(() => {});
   }, [track?.url, track?.trackType]);
 
-  // ── Cuando cambia el estado play/pause (sin cambio de track) ─────────────
   useEffect(() => {
     const el = mediaRef.current;
     if (!el) return;
@@ -132,12 +121,7 @@ export default function SecondScreenPage() {
     else el.pause();
   }, [isPlaying]);
 
-  // ── UI helpers ────────────────────────────────────────────────────────────
-  const coverSrc =
-    track?.trackType === "image"
-      ? track.url
-      : track?.cover ?? FALLBACK_COVER;
-
+  const coverSrc = track?.trackType === "image" ? track.url : track?.cover ?? FALLBACK_COVER;
   const progressPct = duration ? (progress / duration) * 100 : 0;
 
   const formatTime = (secs: number) => {
@@ -147,39 +131,48 @@ export default function SecondScreenPage() {
     return `${m}:${s}`;
   };
 
-  const VolumeIcon = muted || volume === 0
-    ? FaVolumeMute
-    : volume < 0.5
-    ? FaVolumeDown
-    : FaVolumeUp;
+  const VolumeIcon =
+    muted || volume === 0 ? FaVolumeMute : volume < 0.5 ? FaVolumeDown : FaVolumeUp;
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{
-      width: "100vw", height: "100vh", background: "#0a0a0a",
-      display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center",
-      fontFamily: "sans-serif", color: "#fff", overflow: "hidden",
-      gap: 24,
-    }}>
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "#000",
+        overflow: "hidden",
+        cursor: hovered ? "default" : "none",
+      }}
+    >
+      {/* ── MEDIA A PANTALLA COMPLETA ─────────────────────────────────────── */}
       {!track ? (
-        <p style={{ opacity: 0.4, fontSize: "1.4rem" }}>Esperando reproducción...</p>
+        <div style={{
+          width: "100%", height: "100%",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "1.4rem", fontFamily: "sans-serif" }}>
+            Esperando reproducción...
+          </p>
+        </div>
       ) : (
         <>
-          {/* ── VIDEO ─────────────────────────────────────────────────────── */}
           {track.trackType === "video" && (
             <video
               ref={mediaRef as React.RefObject<HTMLVideoElement>}
-              style={{
-                maxWidth: "90vw", maxHeight: "75vh",
-                objectFit: "contain", borderRadius: 12,
-                boxShadow: "0 0 80px rgba(0,0,0,0.9)",
-              }}
               playsInline
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                background: "#000",
+              }}
             />
           )}
 
-          {/* ── AUDIO: cover art + elemento oculto ────────────────────────── */}
           {track.trackType === "audio" && (
             <>
               <audio ref={mediaRef as React.RefObject<HTMLAudioElement>} />
@@ -187,97 +180,140 @@ export default function SecondScreenPage() {
                 src={coverSrc ?? FALLBACK_COVER}
                 alt={track.name}
                 style={{
-                  maxWidth: "60vw", maxHeight: "60vh",
-                  objectFit: "contain", borderRadius: 12,
-                  boxShadow: "0 0 80px rgba(0,0,0,0.9)",
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  background: "#000",
                 }}
               />
             </>
           )}
 
-          {/* ── IMAGEN ────────────────────────────────────────────────────── */}
           {track.trackType === "image" && (
             <img
               src={coverSrc ?? FALLBACK_COVER}
               alt={track.name}
               style={{
-                maxWidth: "90vw", maxHeight: "75vh",
-                objectFit: "contain", borderRadius: 12,
-                boxShadow: "0 0 80px rgba(0,0,0,0.9)",
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                background: "#000",
               }}
             />
           )}
 
-          {/* ── Nombre del track ─────────────────────────────────────────── */}
-          <p style={{
-            fontSize: "1.6rem", fontWeight: 700,
-            textAlign: "center", maxWidth: "80vw",
-            textShadow: "0 2px 12px rgba(0,0,0,0.8)",
-            margin: 0,
-          }}>
-            {track.name}
-          </p>
-
-          {/* ── Barra de progreso (solo audio/video) ─────────────────────── */}
-          {track.trackType !== "image" && (
-            <div style={{ width: "60vw", display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{
-                width: "100%", height: 6,
-                background: "#333", borderRadius: 3, overflow: "hidden",
-              }}>
-                <div style={{
-                  width: `${progressPct}%`, height: "100%",
-                  background: "#4a90d9", borderRadius: 3,
-                  transition: "width 0.5s linear",
-                }} />
-              </div>
-              <div style={{
-                display: "flex", justifyContent: "space-between",
-                opacity: 0.5, fontSize: "0.9rem",
-              }}>
-                <span>{formatTime(progress)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-            </div>
-          )}
-
-          {/* ── Estado ───────────────────────────────────────────────────── */}
-          <p style={{ opacity: 0.4, fontSize: "1rem", margin: 0 }}>
-            {isPlaying ? "▶ Reproduciendo" : "⏸ Pausado"}
-          </p>
-
-          {/* ── Volumen propio de esta pantalla ───────────────────────────── */}
-          {track.trackType !== "image" && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 10,
-              width: "60vw", maxWidth: 320,
+          {/* ── OVERLAY: aparece solo con hover ──────────────────────────── */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              padding: "40px 48px 36px",
+              background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+              opacity: hovered ? 1 : 0,
+              transform: hovered ? "translateY(0)" : "translateY(12px)",
+              transition: "opacity 0.3s ease, transform 0.3s ease",
+              pointerEvents: hovered ? "auto" : "none",
+            }}
+          >
+            {/* Nombre */}
+            <p style={{
+              margin: 0,
+              color: "#fff",
+              fontSize: "1.5rem",
+              fontWeight: 700,
+              fontFamily: "sans-serif",
+              textShadow: "0 2px 8px rgba(0,0,0,0.6)",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}>
-              <button
-                onClick={toggleMute}
-                title={muted ? "Activar sonido" : "Silenciar"}
-                style={{
-                  background: "transparent", border: "none", color: "#fff",
-                  cursor: "pointer", fontSize: "1.1rem", display: "flex",
-                  alignItems: "center", opacity: 0.7,
-                }}
-              >
-                <VolumeIcon />
-              </button>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={muted ? 0 : volume}
-                onChange={handleVolumeChange}
-                style={{ flex: 1, accentColor: "#4a90d9" }}
-                title="Volumen de esta pantalla"
-              />
-              <span style={{ opacity: 0.5, fontSize: "0.85rem", width: 36, textAlign: "right" }}>
-                {Math.round((muted ? 0 : volume) * 100)}%
-              </span>
-            </div>
-          )}
+              {track.name}
+            </p>
+
+            {/* Barra de progreso */}
+            {track.trackType !== "image" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{
+                  width: "100%", height: 4,
+                  background: "rgba(255,255,255,0.2)",
+                  borderRadius: 2, overflow: "hidden",
+                }}>
+                  <div style={{
+                    width: `${progressPct}%`,
+                    height: "100%",
+                    background: "#4a90d9",
+                    borderRadius: 2,
+                    transition: "width 0.5s linear",
+                  }} />
+                </div>
+                <div style={{
+                  display: "flex", justifyContent: "space-between",
+                  color: "rgba(255,255,255,0.5)", fontSize: "0.8rem",
+                  fontFamily: "sans-serif",
+                }}>
+                  <span>{formatTime(progress)}</span>
+                  <span>{formatTime(duration)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Volumen + estado */}
+            {track.trackType !== "image" && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 12,
+                justifyContent: "space-between",
+              }}>
+                <span style={{
+                  color: "rgba(255,255,255,0.4)",
+                  fontSize: "0.85rem",
+                  fontFamily: "sans-serif",
+                }}>
+                  {isPlaying ? "▶ Reproduciendo" : "⏸ Pausado"}
+                </span>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 220 }}>
+                  <button
+                    onClick={toggleMute}
+                    title={muted ? "Activar sonido" : "Silenciar"}
+                    style={{
+                      background: "transparent", border: "none",
+                      color: "#fff", cursor: "pointer",
+                      fontSize: "1rem", display: "flex", alignItems: "center",
+                      opacity: 0.75, padding: 0,
+                    }}
+                  >
+                    <VolumeIcon />
+                  </button>
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={muted ? 0 : volume}
+                    onChange={handleVolumeChange}
+                    style={{ flex: 1, accentColor: "#4a90d9" }}
+                    title="Volumen"
+                  />
+                  <span style={{
+                    color: "rgba(255,255,255,0.5)",
+                    fontSize: "0.8rem", width: 36,
+                    textAlign: "right", fontFamily: "sans-serif",
+                  }}>
+                    {Math.round((muted ? 0 : volume) * 100)}%
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>
