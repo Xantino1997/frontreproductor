@@ -1,0 +1,48 @@
+{
+  "name": "Reproductor",
+  "version": "0.1.0",
+  "private": true,
+  "main": "app/electron/main.js",
+  "scripts": {
+    "dev": "concurrently \"next dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "build:web": "next build",
+    "build:electron": "next build && electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.djconsole.app",
+    "productName": "DJConsole",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*",
+      "app/electron/**/*",
+      "public/**/*"
+    ],
+    "win": {
+      "target": "portable"
+    }
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "electron-log": "^5.4.4",
+    "electron-updater": "^6.8.9",
+    "jsmediatags": "^3.9.7",
+    "react-icons": "^5.6.0",
+    "sweetalert2": "^11.26.25"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.1",
+    "@types/react": "19.2.17",
+    "concurrently": "^10.0.3",
+    "electron": "^42.4.1",
+    "electron-builder": "^26.15.3",
+    "next": "16.2.9",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "typescript": "^5",
+    "wait-on": "^9.0.10"
+  }
+}
