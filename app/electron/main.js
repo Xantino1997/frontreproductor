@@ -42,6 +42,7 @@ function createSplash() {
     splashWindow = new BrowserWindow({
         width: 480, height: 300, frame: false, transparent: true, resizable: false,
         center: true, alwaysOnTop: true, skipTaskbar: true,
+        icon: getPath("app/electron/favicon.ico"),
         webPreferences: { contextIsolation: true, nodeIntegration: false },
     });
     splashWindow.loadFile(getPath("app/electron/splash.html"));
@@ -52,10 +53,7 @@ function createMainWindow() {
         width: 1280, height: 800, minWidth: 900, minHeight: 600,
         backgroundColor: "#0f1520",
         show: false,
-        // --- CAMBIO: Configuración del ícono ---
-        // Asegúrate de que el archivo exista en la ruta especificada
-        icon: getPath("app/assets/icon.png"), 
-        // ---------------------------------------
+        icon: getPath("app/electron/favicon.ico"),
         webPreferences: {
             preload: getPath("app/electron/preload.js"),
             contextIsolation: true,
@@ -71,12 +69,26 @@ function createMainWindow() {
         mainWindow.loadURL("https://frontreproductor.vercel.app");
     }
 
+    const SPLASH_MIN_MS = 2500; // mínimo que se ve el splash
+    const splashStart = Date.now();
+
     mainWindow.once("ready-to-show", () => {
+        const elapsed = Date.now() - splashStart;
+        const remaining = Math.max(0, SPLASH_MIN_MS - elapsed);
+
         setTimeout(() => {
-            if (splashWindow) splashWindow.close();
+            if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
             mainWindow.show();
-        }, 2000);
+        }, remaining);
     });
+
+    // Fallback: si tarda más de 15 segundos igual abre
+    setTimeout(() => {
+        if (!mainWindow.isVisible()) {
+            if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
+            mainWindow.show();
+        }
+    }, 15000);
 }
 
 // ── IPC Handlers ──────────────────────────────────────────────────────────
