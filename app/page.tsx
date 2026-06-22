@@ -23,7 +23,6 @@ export default function Home() {
 
   return (
     <main className="home">
-      <h1>Consola DJ</h1>
       <Player />
     </main>
   );
