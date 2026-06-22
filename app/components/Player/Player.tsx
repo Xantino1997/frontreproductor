@@ -746,7 +746,7 @@ export default function Player() {
 
           {tracks.length === 0 && (
             <p className="player-queue-empty">
-              Subí audio, video o imágenes para armar la cola
+              Subí audio, video o imágenes para armar la lista
             </p>
           )}
           {tracks.length > 0 && visibleTracks.length === 0 && (
