@@ -52,20 +52,22 @@ function createMainWindow() {
         width: 1280, height: 800, minWidth: 900, minHeight: 600,
         backgroundColor: "#0f1520",
         show: false,
+        // --- CAMBIO: Configuración del ícono ---
+        // Asegúrate de que el archivo exista en la ruta especificada
+        icon: getPath("app/assets/icon.png"), 
+        // ---------------------------------------
         webPreferences: {
             preload: getPath("app/electron/preload.js"),
             contextIsolation: true,
             nodeIntegration: false,
-            sandbox: false, // Permitir carga de contenido remoto
+            sandbox: false,
         },
     });
 
     if (isDev) {
-        // Entorno de desarrollo
         mainWindow.loadURL("http://localhost:3000");
         mainWindow.webContents.openDevTools();
     } else {
-        // Entorno de producción (Vercel)
         mainWindow.loadURL("https://frontreproductor.vercel.app");
     }
 
