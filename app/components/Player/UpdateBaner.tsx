@@ -35,8 +35,8 @@ export default function UpdateBaner() {
         </div>
         
         <a 
-          href="/descargas/dj-console-setup.exe" 
-          download="DJ_Console_Setup.exe"
+          href="https://github.com/Xantino1997/frontreproductor/releases/download/v1.0.0/dj-console-setup.exe"
+          download="DJ-Console-Setup.exe"
           className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-transform hover:scale-105 active:scale-95"
         >
           Descargar .EXE para Windows
