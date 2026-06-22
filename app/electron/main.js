@@ -60,7 +60,7 @@ function createMainWindow() {
     });
 
     if (isDev) {
-        mainWindow.loadURL("http://localhost:3000");
+        mainWindow.loadURL("https://frontreproductor.vercel.app");
     } else {
         mainWindow.loadFile(getPath("out/index.html"));
     }
