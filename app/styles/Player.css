@@ -824,3 +824,28 @@
     max-height: 460px;
   }
 }
+
+.player-queue-wrapper {
+  background: #0f1117;
+  border: 1px solid #1e2130;
+  border-radius: 12px;
+  padding: 14px;
+  min-height: 220px;
+}
+
+.player-queue {
+  min-height: 120px;
+}
+
+@media (min-width: 768px) {
+  .player-queue-wrapper {
+    border-radius: 12px;
+    padding: 16px;
+    min-height: 420px;
+  }
+
+  .player-queue {
+    min-height: 300px;
+    max-height: 460px;
+  }
+}
