@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   FaPlay, FaPause, FaStop, FaForward, FaBackward,
   FaUpload, FaSave, FaVolumeUp, FaVolumeMute, FaVolumeDown,
-  FaSearch, FaTimes, FaLayerGroup,
+  FaSearch, FaTimes, FaLayerGroup, FaTrash,
 } from "react-icons/fa";
 import Swal from "sweetalert2";
 import {
@@ -37,30 +37,21 @@ const channel =
 
 export default function Player() {
   const [tracks, setTracks] = useState<Track[]>([]);
-
-  // Selección / reproducción ahora por ID, no por índice numérico,
-  // porque drag&drop, duplicar y agrupar cambian el orden/cantidad del array.
   const [currentTrackId, setCurrentTrackId] = useState<string | null>(null);
   const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
   const [overrideTrackId, setOverrideTrackId] = useState<string | null>(null);
   const [editingTrackId, setEditingTrackId] = useState<string | null>(null);
-
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [listName, setListName] = useState(DEFAULT_LIST_NAME);
-
-  // Volumen local de esta pantalla
   const [volume, setVolume] = useState(1);
   const [muted, setMuted] = useState(false);
-
-  // Edición de nombre inline
   const [editingName, setEditingName] = useState("");
-
-  // Búsqueda / filtro / agrupación
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [groupByType, setGroupByType] = useState(false);
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
 
   const mediaRef = useRef<HTMLAudioElement | HTMLVideoElement | null>(null);
   const resumeTrackIdRef = useRef<string | null>(null);
@@ -73,7 +64,6 @@ export default function Player() {
   const currentTrack =
     currentTrackId !== null ? tracks.find((t) => t.id === currentTrackId) ?? null : null;
 
-  // ── Sensores de drag&drop (distancia mínima para no romper el click normal) ──
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
@@ -93,19 +83,16 @@ export default function Player() {
     });
   }, [currentTrack]);
 
-  // ── Broadcast: estado de play/pause ────────────────────────────────────
   useEffect(() => {
     if (!channel) return;
     channel.postMessage({ type: "PLAYBACK_STATE", isPlaying });
   }, [isPlaying]);
 
-  // ── Broadcast: progreso ─────────────────────────────────────────────────
   useEffect(() => {
     if (!channel) return;
     channel.postMessage({ type: "PROGRESS", progress, duration });
   }, [progress, duration]);
 
-  // ── Broadcast: responder REQUEST_STATE ──────────────────────────────────
   useEffect(() => {
     if (!channel) return;
     const handleRequest = (e: MessageEvent) => {
@@ -130,7 +117,6 @@ export default function Player() {
     return () => channel.removeEventListener("message", handleRequest);
   }, [currentTrack, isPlaying, progress, duration]);
 
-  // ── Cargar nombre de lista guardado ────────────────────────────────────
   useEffect(() => {
     const saved = localStorage.getItem(LIST_NAME_STORAGE_KEY);
     if (saved) {
@@ -141,7 +127,6 @@ export default function Player() {
     }
   }, []);
 
-  // ── Cargar volumen guardado ─────────────────────────────────────────────
   useEffect(() => {
     const saved = localStorage.getItem(VOLUME_STORAGE_KEY);
     if (saved !== null) {
@@ -231,7 +216,7 @@ export default function Player() {
       .filter((s) => s.tracks.length > 0);
   }, [groupByType, visibleTracks]);
 
-  // ── Click / doble click en la lista ───────────────────────────────────
+  // ── Click / doble click ────────────────────────────────────────────────
   const handleItemClick = (id: string) => {
     if (editingTrackId !== null) return;
     if (clickTimerRef.current) {
@@ -348,6 +333,7 @@ export default function Player() {
     );
   };
 
+  // ── Borrado individual ─────────────────────────────────────────────────
   const handleDeleteTrack = async (id: string) => {
     const track = tracks.find((t) => t.id === id);
     if (!track) return;
@@ -362,10 +348,9 @@ export default function Player() {
     if (id === overrideTrackId) setOverrideTrackId(null);
     if (id === selectedTrackId) setSelectedTrackId(null);
     if (id === editingTrackId) setEditingTrackId(null);
+    setCheckedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
 
     setTracks((prev) => {
-      // Si hay duplicados que comparten el mismo blob URL, no lo revocamos
-      // todavía o rompemos la reproducción de la copia.
       const stillUsesUrl = prev.some((t) => t.id !== id && t.url === track.url);
       if (!stillUsesUrl) URL.revokeObjectURL(track.url);
       return prev.filter((t) => t.id !== id);
@@ -374,7 +359,81 @@ export default function Player() {
     Swal.fire({ title: "Borrado", icon: "success", timer: 1200, showConfirmButton: false });
   };
 
-  // ── Duplicar ─────────────────────────────────────────────────────────────
+  // ── Borrado múltiple ───────────────────────────────────────────────────
+  const handleCheck = (id: string, checked: boolean) => {
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const handleCheckAll = (checked: boolean) => {
+    setCheckedIds(checked ? new Set(visibleTracks.map((t) => t.id)) : new Set());
+  };
+
+  const handleDeleteChecked = async () => {
+    if (checkedIds.size === 0) return;
+    const result = await Swal.fire({
+      title: `¿Borrar ${checkedIds.size} tema${checkedIds.size > 1 ? "s" : ""}?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, borrar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#4a90d9",
+    });
+    if (!result.isConfirmed) return;
+
+    if (currentTrackId && checkedIds.has(currentTrackId)) {
+      handleStop();
+      setCurrentTrackId(null);
+    }
+    if (overrideTrackId && checkedIds.has(overrideTrackId)) setOverrideTrackId(null);
+    if (selectedTrackId && checkedIds.has(selectedTrackId)) setSelectedTrackId(null);
+    if (editingTrackId && checkedIds.has(editingTrackId)) setEditingTrackId(null);
+
+    setTracks((prev) => {
+      const toDelete = prev.filter((t) => checkedIds.has(t.id));
+      toDelete.forEach((t) => {
+        const stillUsed = prev.some((x) => x.id !== t.id && x.url === t.url);
+        if (!stillUsed) URL.revokeObjectURL(t.url);
+      });
+      return prev.filter((t) => !checkedIds.has(t.id));
+    });
+
+    setCheckedIds(new Set());
+    Swal.fire({ title: "Borrado", icon: "success", timer: 1200, showConfirmButton: false });
+  };
+
+  // ── Limpiar toda la lista ──────────────────────────────────────────────
+  const handleClearAll = async () => {
+    if (tracks.length === 0) return;
+    const result = await Swal.fire({
+      title: "¿Limpiar toda la lista?",
+      text: `Se van a borrar los ${tracks.length} temas`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, limpiar todo",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#4a90d9",
+    });
+    if (!result.isConfirmed) return;
+
+    handleStop();
+    tracks.forEach((t) => URL.revokeObjectURL(t.url));
+    setTracks([]);
+    setCurrentTrackId(null);
+    setSelectedTrackId(null);
+    setOverrideTrackId(null);
+    setEditingTrackId(null);
+    setCheckedIds(new Set());
+    Swal.fire({ title: "Lista limpia", icon: "success", timer: 1200, showConfirmButton: false });
+  };
+
+  // ── Duplicar ──────────────────────────────────────────────────────────
   const handleDuplicateTrack = (id: string) => {
     setTracks((prev) => {
       const idx = prev.findIndex((t) => t.id === id);
@@ -391,9 +450,7 @@ export default function Player() {
     });
   };
 
-  // ── Reordenar (drag&drop y botones subir/bajar) ─────────────────────────
-  // Mueve un track dentro del subconjunto visible (filtro/búsqueda/grupo),
-  // preservando la posición real de los tracks no visibles en el array completo.
+  // ── Reordenar ─────────────────────────────────────────────────────────
   const reorderWithinSubset = useCallback(
     (predicate: (t: Track) => boolean, oldIndex: number, newIndex: number) => {
       setTracks((prev) => {
@@ -422,12 +479,10 @@ export default function Player() {
     if (!over || active.id === over.id) return;
     const activeId = String(active.id);
     const overId = String(over.id);
-
     const activeTrack = tracks.find((t) => t.id === activeId);
     const overTrack = tracks.find((t) => t.id === overId);
     if (!activeTrack || !overTrack) return;
     if (groupByType && activeTrack.type !== overTrack.type) return;
-
     const predicate = sectionPredicateFor(activeTrack);
     const subset = tracks.filter(predicate);
     const oldIndex = subset.findIndex((t) => t.id === activeId);
@@ -469,7 +524,7 @@ export default function Player() {
     goToNext();
   };
 
-  // ── Seek con la barra de progreso ──────────────────────────────────────
+  // ── Seek ──────────────────────────────────────────────────────────────
   const seekToPosition = useCallback(
     (clientX: number) => {
       const bar = progressBarRef.current;
@@ -479,9 +534,7 @@ export default function Player() {
       const newTime = ratio * duration;
       setProgress(newTime);
       if (mediaRef.current) mediaRef.current.currentTime = newTime;
-      if (channel) {
-        channel.postMessage({ type: "SEEK", time: newTime, duration });
-      }
+      if (channel) channel.postMessage({ type: "SEEK", time: newTime, duration });
     },
     [duration]
   );
@@ -490,7 +543,6 @@ export default function Player() {
     if (!duration) return;
     isDraggingSeekRef.current = true;
     seekToPosition(e.clientX);
-
     const onMove = (ev: MouseEvent) => {
       if (isDraggingSeekRef.current) seekToPosition(ev.clientX);
     };
@@ -541,6 +593,9 @@ export default function Player() {
 
   const progressPct = duration ? (progress / duration) * 100 : 0;
 
+  const allVisibleChecked =
+    visibleTracks.length > 0 && visibleTracks.every((t) => checkedIds.has(t.id));
+
   // ── Elemento de media ──────────────────────────────────────────────────
   const mediaElement =
     currentTrack?.type === "video" ? (
@@ -581,7 +636,7 @@ export default function Player() {
       </div>
 
       <div className="player-layout">
-        {/* Bloque principal: cover/video + info + controles */}
+        {/* Bloque principal */}
         <div className="player-main">
           <div className="player-visual">
             {mediaElement}
@@ -598,7 +653,6 @@ export default function Player() {
             <span className="player-track-name">
               {currentTrack ? currentTrack.name : "Sin tema seleccionado"}
             </span>
-
             <div
               className="player-progress-bar"
               ref={progressBarRef}
@@ -607,7 +661,6 @@ export default function Player() {
               <div className="player-progress-fill" style={{ width: `${progressPct}%` }} />
               <div className="player-progress-thumb" style={{ left: `${progressPct}%` }} />
             </div>
-
             <div className="player-times">
               <span>{formatTime(progress)}</span>
               <span>{formatTime(duration)}</span>
@@ -644,14 +697,11 @@ export default function Player() {
               <VolumeIcon />
             </button>
             <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
+              type="range" min={0} max={1} step={0.01}
               value={muted ? 0 : volume}
               onChange={handleVolumeChange}
               className="player-volume-slider"
-              title="Volumen de esta pantalla"
+              title="Volumen"
             />
             <span className="player-volume-value">{Math.round((muted ? 0 : volume) * 100)}%</span>
           </div>
@@ -659,7 +709,7 @@ export default function Player() {
 
         {/* Cola de tracks */}
         <div className="player-queue-wrapper">
-          {/* Toolbar: búsqueda + filtro + agrupar */}
+          {/* Toolbar */}
           <div className="player-queue-toolbar">
             <div className="player-queue-search">
               <FaSearch className="player-queue-search-icon" />
@@ -700,6 +750,43 @@ export default function Player() {
             </div>
           </div>
 
+          {/* Barra de acciones bulk */}
+          {tracks.length > 0 && (
+            <div className="player-queue-bulk-bar">
+              <label className="player-queue-check-all">
+                <input
+                  type="checkbox"
+                  checked={allVisibleChecked}
+                  onChange={(e) => handleCheckAll(e.target.checked)}
+                />
+                <span>
+                  {checkedIds.size > 0
+                    ? `${checkedIds.size} seleccionado${checkedIds.size > 1 ? "s" : ""}`
+                    : "Seleccionar todo"}
+                </span>
+              </label>
+
+              <div className="player-queue-bulk-actions">
+                {checkedIds.size > 0 && (
+                  <button
+                    className="player-bulk-btn player-bulk-btn--danger"
+                    onClick={handleDeleteChecked}
+                    title={`Borrar ${checkedIds.size} seleccionados`}
+                  >
+                    <FaTrash /> Borrar ({checkedIds.size})
+                  </button>
+                )}
+                <button
+                  className="player-bulk-btn player-bulk-btn--danger"
+                  onClick={handleClearAll}
+                  title="Limpiar toda la lista"
+                >
+                  <FaTrash /> Limpiar todo
+                </button>
+              </div>
+            </div>
+          )}
+
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             {sections.map((section) => (
               <div key={section.key} className="player-queue-section">
@@ -725,6 +812,8 @@ export default function Player() {
                         editingName={editingName}
                         canMoveUp={idx > 0}
                         canMoveDown={idx < section.tracks.length - 1}
+                        isChecked={checkedIds.has(track.id)}
+                        onCheck={(e) => handleCheck(track.id, e.target.checked)}
                         onItemClick={() => handleItemClick(track.id)}
                         onStartEdit={(e) => handleStartEdit(track.id, e)}
                         onConfirmEdit={handleConfirmEdit}
