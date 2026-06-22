@@ -849,3 +849,73 @@
     max-height: 460px;
   }
 }
+/* ── Checkbox de ítem ── */
+.player-queue-checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: #4a90d9;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.player-queue-item.is-checked {
+  background: #162840;
+  outline: 1px solid #4a90d9;
+}
+
+/* ── Barra de acciones bulk ── */
+.player-queue-bulk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 4px;
+  border-bottom: 1px solid #1e2130;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.player-queue-check-all {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #8c8fa3;
+  user-select: none;
+}
+
+.player-queue-check-all input {
+  accent-color: #4a90d9;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.player-queue-check-all:hover span {
+  color: #e8e8f0;
+}
+
+.player-queue-bulk-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.player-bulk-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: none;
+  font-size: 11px;
+  cursor: pointer;
+  background: #1e2130;
+  color: #8c8fa3;
+  transition: background 0.15s;
+}
+
+.player-bulk-btn--danger:hover {
+  background: #d33;
+  color: #fff;
+}
