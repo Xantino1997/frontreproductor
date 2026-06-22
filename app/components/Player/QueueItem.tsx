@@ -18,6 +18,8 @@ interface QueueItemProps {
   editingName: string;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  isChecked: boolean;
+  onCheck: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onItemClick: () => void;
   onStartEdit: (e: React.MouseEvent) => void;
   onConfirmEdit: () => void;
@@ -34,6 +36,7 @@ interface QueueItemProps {
 export default function QueueItem({
   track, isCurrent, isSelected, isQueued, isPlayingCurrent,
   isEditing, editingName, canMoveUp, canMoveDown,
+  isChecked, onCheck,
   onItemClick, onStartEdit, onConfirmEdit, onEditingNameChange, onCancelEdit,
   onDirectPlay, onToggleHoldAtEnd, onDelete, onDuplicate, onMoveUp, onMoveDown,
 }: QueueItemProps) {
@@ -57,10 +60,21 @@ export default function QueueItem({
         isSelected ? "is-selected" : "",
         isQueued ? "is-queued" : "",
         isDragging ? "is-dragging" : "",
+        isChecked ? "is-checked" : "",
       ]
         .filter(Boolean)
         .join(" ")}
     >
+      {/* Checkbox de selección múltiple */}
+      <input
+        type="checkbox"
+        className="player-queue-checkbox"
+        checked={isChecked}
+        onChange={onCheck}
+        onClick={(e) => e.stopPropagation()}
+        title="Seleccionar para borrar"
+      />
+
       {/* Asa de arrastre */}
       <span
         className="player-queue-drag"
@@ -78,7 +92,7 @@ export default function QueueItem({
         {track.type === "image" && <FaImage />}
       </span>
 
-      {/* Nombre: normal o en edición */}
+      {/* Nombre */}
       {isEditing ? (
         <input
           className="player-queue-name-input"
