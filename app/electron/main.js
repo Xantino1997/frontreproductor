@@ -56,13 +56,17 @@ function createMainWindow() {
             preload: getPath("app/electron/preload.js"),
             contextIsolation: true,
             nodeIntegration: false,
+            sandbox: false, // Permitir carga de contenido remoto
         },
     });
 
     if (isDev) {
-        mainWindow.loadURL("https://frontreproductor.vercel.app");
+        // Entorno de desarrollo
+        mainWindow.loadURL("http://localhost:3000");
+        mainWindow.webContents.openDevTools();
     } else {
-        mainWindow.loadFile(getPath("out/index.html"));
+        // Entorno de producción (Vercel)
+        mainWindow.loadURL("https://frontreproductor.vercel.app");
     }
 
     mainWindow.once("ready-to-show", () => {
