@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DJ Console</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: #fff;
+      user-select: none;
+      -webkit-app-region: drag; /* permite arrastrar la ventana sin borde */
+    }
+
+    .bg {
+      position: absolute;
+      inset: 0;
+      background-image: url('./assets/fondo.webp');
+      background-size: cover;
+      background-position: center;
+      filter: brightness(0.55);
+    }
+
+    .vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center,
+        transparent 30%,
+        rgba(0,0,0,0.75) 100%
+      );
+    }
+
+    .content {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 20px;
+    }
+
+    .logo {
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #fff;
+      text-shadow: 0 0 40px rgba(74, 144, 217, 0.9), 0 2px 8px rgba(0,0,0,0.8);
+    }
+
+    .logo span {
+      color: #4a90d9;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      opacity: 0.55;
+      font-weight: 400;
+    }
+
+    /* Barra de carga */
+    .progress-track {
+      width: 220px;
+      height: 2px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #4a90d9, #7ec8e3);
+      border-radius: 2px;
+      animation: loading 1.8s ease-in-out forwards;
+    }
+
+    @keyframes loading {
+      0%   { width: 0%;   opacity: 1; }
+      60%  { width: 80%;  opacity: 1; }
+      90%  { width: 95%;  opacity: 1; }
+      100% { width: 100%; opacity: 0.6; }
+    }
+
+    .version {
+      position: absolute;
+      bottom: 18px;
+      right: 20px;
+      font-size: 0.7rem;
+      opacity: 0.3;
+      letter-spacing: 0.1em;
+    }
+
+    /* Fade in inicial */
+    body {
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg"></div>
+  <div class="vignette"></div>
+
+  <div class="content">
+    <div class="logo">DJ <span>Console</span></div>
+    <div class="subtitle">Reproductor multimedia</div>
+    <div class="progress-track">
+      <div class="progress-fill"></div>
+    </div>
+  </div>
+
+  <div class="version" id="ver">v0.0.0</div>
+
+  <script>
+    // Recibe la versión desde main process
+    window.addEventListener('message', (e) => {
+      if (e.data?.version) {
+        document.getElementById('ver').textContent = 'v' + e.data.version;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+.second-screen-picker-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 35, 64, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.second-screen-picker {
+  background: #fff;
+  border-radius: 12px;
+  min-width: 320px;
+  max-width: 90vw;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  font-family: "DM Sans", sans-serif;
+}
+
+.second-screen-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: #1e3a5f;
+  color: #fff;
+  font-weight: 600;
+}
+
+.second-screen-picker-header button {
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+.second-screen-picker-header button:hover {
+  opacity: 1;
+}
+
+.second-screen-picker ul {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+}
+
+.second-screen-picker li button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #0d2340;
+  transition: background 0.15s ease;
+}
+
+.second-screen-picker li button:hover {
+  background: #eef4fb;
+}
+
+.second-screen-picker li button svg {
+  color: #4a90d9;
+}
+
+.second-screen-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  z-index: 1000;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.second-screen-toast--error {
+  background: #fdecea;
+  color: #d33;
+  border: 1px solid #f5b5ad;
+}

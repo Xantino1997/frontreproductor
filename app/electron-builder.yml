@@ -1,0 +1,15 @@
+appId: com.djconsole.app
+productName: DJConsole
+files:
+  - app/electron/**/* # <--- Ahora coincide con tu ruta real
+  - out/**/*
+  - public/**/*
+  - package.json
+directories:
+  output: dist
+  buildResources: build
+win:
+  target:
+    - target: portable
+      arch: [x64]
+  icon: public/icon.ico
