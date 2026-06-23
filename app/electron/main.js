@@ -25,7 +25,7 @@ nativeTheme.themeSource = "dark";
 
 const getPath = (filePath) => {
     return isDev 
-        ? path.join(__dirname, "../../", filePath) 
+        ? path.join(__dirname, "../", filePath) 
         : path.join(process.resourcesPath, filePath);
 };
 
